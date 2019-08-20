@@ -5,7 +5,7 @@
   "main": "./modules/index",
   "spec": "cucumber version >=3.0.0 <=4.2.1",
   "dependencies": {
-    "deasync": "0.1.12",
+    "deasync": "^0.1.12",
     "path": "^0.12.7",
     "reportportal-client": "^5.1.0"
   },
