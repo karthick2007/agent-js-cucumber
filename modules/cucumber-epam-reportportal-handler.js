@@ -51,7 +51,6 @@ module.exports = (config) => {
       stepStatus: 'failed',
       launchId: null,
       failedScenarios: {},
-      scenariosCount: {},
       lastScenarioDescription: null,
       scenario: null,
       step: null,
@@ -204,8 +203,6 @@ module.exports = (config) => {
         let name = featureDocument.name;
         let tagsEvent = featureDocument.tags ? featureDocument.tags.map(tag => tag.name) : [];
 
-        context.scenariosCount[featureUri] = { total: featureDocument.children.length, done: 0 };
-
         //BeforeFeature
         let featureId = reportportal.startTestItem({
           name: name,
@@ -272,17 +269,11 @@ module.exports = (config) => {
       }
 
       let name = context.step.text ? `${context.step.keyword} ${context.step.text}` : context.step.keyword;
-      let type = 'STEP';
-      if (context.step.keyword === 'Before') {
-        type = 'BEFORE_TEST';
-      } else if (context.step.keyword === 'After') {
-        type = 'AFTER_TEST';
-      }
 
       context.stepId = reportportal.startTestItem({
         name: name,
         start_time: reportportal.helpers.now(),
-        type: type,
+        type: "STEP",
         description: args.length ? args.join("\n").trim() : ""
       }, context.launchId, context.scenarioId).tempId;
     });
@@ -447,20 +438,20 @@ module.exports = (config) => {
       });
       context.scenarioStatus = 'failed';
       context.scenarioId = null;
-
-      const featureUri = event.sourceLocation.uri;
-      context.scenariosCount[featureUri].done++;
-      const { total, done } = context.scenariosCount[featureUri];
-      if (done === total) {
-        const featureStatus = context.failedScenarios[featureUri] > 0 ? 'failed' : 'passed';
-        reportportal.finishTestItem(pickleDocuments[featureUri].featureId, {
-          status: featureStatus,
-          end_time: reportportal.helpers.now()
-        });
-      }
     });
 
     this.eventBroadcaster.on('test-run-finished', (event) => {
+      // AfterFeature
+      Object.entries(pickleDocuments).forEach(
+        ([key, value]) => {
+          let featureStatus = context.failedScenarios[key] > 0 ? 'failed' : 'passed';
+          reportportal.finishTestItem(value.featureId, {
+            status: featureStatus,
+            end_time: reportportal.helpers.now()
+          })
+        }
+      );
+
       // AfterFeatures
       let promise = reportportal.getPromiseFinishAllItems(context.launchId);
       resolveReportPortalPromise(promise);
